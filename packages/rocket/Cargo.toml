@@ -1,0 +1,9 @@
+[package]
+name = "rocket-backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+minio = { git = "https://github.com/minio/minio-rs", version = "0.2.0-alpha" }
+rocket = { version = "0.5.1", features = ["json"] }
+serde = { version = "1.0.206", features = ["derive"] }

@@ -1,4 +1,5 @@
 #!/bin/zsh
+set -x
 
 container_name=my-minio
 

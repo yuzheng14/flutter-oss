@@ -1,0 +1,5 @@
+[default]
+bucket_name = "flutter-test"
+minio_url = "http://localhost:9000"
+minio_access_key = "oLTKAa5RF2ygHQ7Dt8i9"
+minio_secret_key = "sAtLw1t1ZGduZHApvMsEq9rUUPdUngtZThS1FPLw"

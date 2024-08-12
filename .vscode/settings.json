@@ -3,6 +3,7 @@
     "Minio"
   ],
   "conventionalCommits.scopes": [
-    "flutter"
+    "flutter",
+    "rust"
   ]
 }

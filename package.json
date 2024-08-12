@@ -1,0 +1,12 @@
+{
+  "name": "flutter_oss",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "backend": "pnpm -F rocket"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
