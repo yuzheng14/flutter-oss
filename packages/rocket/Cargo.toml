@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-minio = { git = "https://github.com/minio/minio-rs", version = "0.2.0-alpha" }
+# `upload_object` in minio 0.1.0 uses std:io:file to upload object,
+# but this does not implement `Send` trait,
+# so it can't be used in async function whose runtime provided by tokio.
+# The newest version of minio-rs has fixed this issue by providing `put_object_api` function,
+# but this is not released yet.
+# So we use the git version of minio-rs.
+minio = { git = "https://github.com/minio/minio-rs", version = "0.2.0-alpha", rev = "b19513c90fa44724c4bd0ce328a0509c91652fae" }
 rocket = { version = "0.5.1", features = ["json"] }
 serde = { version = "1.0.206", features = ["derive"] }

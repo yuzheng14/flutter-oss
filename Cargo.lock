@@ -1044,7 +1044,7 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 [[package]]
 name = "minio"
 version = "0.2.0-alpha"
-source = "git+https://github.com/minio/minio-rs#b19513c90fa44724c4bd0ce328a0509c91652fae"
+source = "git+https://github.com/minio/minio-rs?rev=b19513c90fa44724c4bd0ce328a0509c91652fae#b19513c90fa44724c4bd0ce328a0509c91652fae"
 dependencies = [
  "async-recursion",
  "async-trait",

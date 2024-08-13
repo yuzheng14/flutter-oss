@@ -8,11 +8,11 @@ use crate::types::MinioError;
 #[derive(Serialize)]
 pub struct InternalServerError {
     message: String,
-    details: String,
+    details: Option<String>,
 }
 
 impl InternalServerError {
-    pub fn new(message: String, details: String) -> Self {
+    pub fn new(message: String, details: Option<String>) -> Self {
         Self { message, details }
     }
 }
@@ -40,7 +40,7 @@ impl From<MinioError> for InternalServerErrorResponder {
         InternalServerErrorResponder {
             inner: Json(InternalServerError::new(
                 err.to_string(),
-                format!("{:#?}", err),
+                Some(format!("{:#?}", err)),
             )),
         }
     }
@@ -51,7 +51,7 @@ impl From<std::io::Error> for InternalServerErrorResponder {
         InternalServerErrorResponder {
             inner: Json(InternalServerError::new(
                 err.to_string(),
-                format!("{:#?}", err),
+                Some(format!("{:#?}", err)),
             )),
         }
     }
@@ -62,8 +62,16 @@ impl From<rocket::tokio::task::JoinError> for InternalServerErrorResponder {
         InternalServerErrorResponder {
             inner: Json(InternalServerError::new(
                 err.to_string(),
-                format!("{:#?}", err),
+                Some(format!("{:#?}", err)),
             )),
+        }
+    }
+}
+
+impl From<String> for InternalServerErrorResponder {
+    fn from(err: String) -> Self {
+        InternalServerErrorResponder {
+            inner: Json(InternalServerError::new(err, None)),
         }
     }
 }

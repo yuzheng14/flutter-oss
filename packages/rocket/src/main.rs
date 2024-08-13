@@ -1,27 +1,28 @@
 use std::ops::Deref;
 
 use minio::s3::{
-    args::{
-        BucketExistsArgs, ListBucketsArgs, ListObjectsV2Args, MakeBucketArgs,
-        ObjectConditionalReadArgs, PutObjectArgs, UploadObjectArgs,
-    },
+    args::{BucketExistsArgs, MakeBucketArgs, ObjectConditionalReadArgs, PutObjectApiArgs},
     client::Client,
     creds::StaticProvider,
+    error::ErrorResponse,
     http::BaseUrl,
+    response,
+    types::{S3Api, ToStream},
 };
 use responder::{InternalServerError, InternalServerErrorResponder};
 use rocket::{
     fairing::AdHoc,
     form::Form,
+    futures::StreamExt,
     get,
     http::Status,
     launch, put, routes,
     serde::json::Json,
-    tokio::{fs::File, task::spawn_blocking},
+    tokio::{fs::File, io::AsyncReadExt},
     State,
 };
 use serde::{Deserialize, Serialize};
-use types::{Bucket, Item, MinioError, UploadObjectForm};
+use types::{Bucket, ListEntry, MinioError, UploadObjectForm};
 
 mod responder;
 mod types;
@@ -49,11 +50,7 @@ async fn ensure_bucket_exist(client: &Client, bucket_name: &str) -> Result<(), M
 async fn bucket(
     state: &State<AppState>,
 ) -> Result<Json<Vec<Bucket>>, InternalServerErrorResponder> {
-    let buckets = state
-        .minio_client
-        .list_buckets(&ListBucketsArgs::new())
-        .await?
-        .buckets;
+    let buckets = state.minio_client.list_buckets().send().await?.buckets;
 
     Ok(Json(buckets.into_iter().map(|b| b.into()).collect()))
 }
@@ -62,16 +59,41 @@ async fn bucket(
 async fn object(
     state: &State<AppState>,
     config: &State<AppConfig>,
-) -> Result<Json<Vec<Item>>, InternalServerErrorResponder> {
+) -> Result<Json<Vec<ListEntry>>, InternalServerErrorResponder> {
     ensure_bucket_exist(&state.minio_client, &config.bucket_name).await?;
 
-    let objects = state
+    let mut list_objects = state
         .minio_client
-        .list_objects_v2(&ListObjectsV2Args::new(&config.bucket_name)?)
-        .await?
-        .contents;
+        .list_objects(&config.bucket_name)
+        .to_stream()
+        .await
+        .collect::<Vec<Result<response::ListObjectsResponse, MinioError>>>()
+        .await;
 
-    Ok(Json(objects.into_iter().map(|o| o.into()).collect()))
+    // let bucket = list_objects[0]?;
+
+    // if bucket.name != config.bucket_name {
+    //     return Err(InternalServerError::new(
+    //         "Bucket not found.".to_string(),
+    //         Some(format!("{:#?}", bucket)),
+    //     )
+    //     .into());
+    // };
+
+    let bucket = list_objects
+        .pop()
+        .ok_or(format!("list_objects is empty"))??;
+
+    if bucket.name != config.bucket_name {
+        Err(InternalServerError::new(
+            "Bucket not found.".to_string(),
+            Some(format!("{:#?}", bucket)),
+        ))?;
+    }
+
+    Ok(Json(
+        bucket.contents.into_iter().map(|o| o.into()).collect(),
+    ))
 }
 
 #[put("/object/<object_name>", data = "<form>")]
@@ -83,14 +105,23 @@ async fn upload_file(
 ) -> Result<Status, InternalServerErrorResponder> {
     ensure_bucket_exist(&state.minio_client, &config.bucket_name).await?;
 
-    state
+    // if object exists, return 204, else 201
+    let stat = state
         .minio_client
         .stat_object(&ObjectConditionalReadArgs::new(
             &config.bucket_name,
             object_name,
         )?)
-        .await?;
+        .await;
+    let status = match stat {
+        Ok(_) => Status::NoContent,
+        Err(MinioError::S3Error(ErrorResponse { code, .. })) if code == "NoSuchKey" => {
+            Status::Created
+        }
+        Err(e) => return Err(e.into()),
+    };
 
+    // read file content
     let path = form
         .file
         .path()
@@ -98,38 +129,24 @@ async fn upload_file(
         .flatten()
         .ok_or(InternalServerError::new(
             "File doesn't exist.".to_string(),
-            format!(""),
+            None,
         ))?
         .to_string();
+    let mut data = Vec::new();
+
+    File::open(&path).await?.read_to_end(&mut data).await?;
+
+    // upload
     state
         .minio_client
-        .upload_object(&UploadObjectArgs::new(
+        .put_object_api(&PutObjectApiArgs::new(
             &config.bucket_name,
             object_name,
-            &path,
+            &data,
         )?)
-        // .put_object(&mut PutObjectArgs::new(
-        //     &config.bucket_name,
-        //     object_name,
-        //     &mut File::open(&path)
-        //         .await
-        //         .map_err(|err| Into::<MinioError>::into(err))?,
-        //     None,
-        //     None,
-        // )?)
         .await?;
-    // let handler = spawn_blocking(move || {
-    //     let result = state.minio_client.upload_object(&UploadObjectArgs::new(
-    //         &config.bucket_name,
-    //         object_name,
-    //         &path,
-    //     )?);
 
-    //     result
-    // })
-    // .await?
-    // .await?;
-    Ok(Status::Created)
+    Ok(status)
 }
 
 #[get("/config")]
@@ -148,7 +165,7 @@ struct AppConfig {
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .mount("/", routes![bucket, object, config])
+        .mount("/", routes![bucket, object, config, upload_file])
         .attach(AdHoc::config::<AppConfig>())
         .attach(AdHoc::try_on_ignite("minio_client", |rocket| async {
             let config = rocket.state::<AppConfig>().unwrap().to_owned();
