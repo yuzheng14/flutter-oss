@@ -70,16 +70,6 @@ async fn object(
         .collect::<Vec<Result<response::ListObjectsResponse, MinioError>>>()
         .await;
 
-    // let bucket = list_objects[0]?;
-
-    // if bucket.name != config.bucket_name {
-    //     return Err(InternalServerError::new(
-    //         "Bucket not found.".to_string(),
-    //         Some(format!("{:#?}", bucket)),
-    //     )
-    //     .into());
-    // };
-
     let bucket = list_objects
         .pop()
         .ok_or(format!("list_objects is empty"))??;

@@ -1,11 +1,9 @@
 {
-  "name": "flutter_oss",
+  "name": "flutter",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "backend": "pnpm -F rocket",
-    "flutter": "pnpm -F flutter"
+    "start": "flutter run"
   },
   "keywords": [],
   "author": "",

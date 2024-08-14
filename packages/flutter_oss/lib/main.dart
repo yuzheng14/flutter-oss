@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oss/storage.dart';
 import 'package:flutter_oss/transfer.dart';
-import 'package:minio/minio.dart';
-import 'package:provider/provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,28 +11,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => MyAppState(),
-      child: MaterialApp(
-        title: 'Object Storage Client',
-        theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
-        home: const HomePage(),
-      ),
+    return MaterialApp(
+      title: 'Object Storage Client',
+      theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
+      home: const HomePage(),
     );
   }
-}
-
-class MyAppState extends ChangeNotifier {
-  // FIXME is this really the best way to store the AKSK?
-  // the package minio latest release 3 years ago
-  // final minio = Minio(
-  //     endPoint: 'localhost',
-  //     port: 9000,
-  //     useSSL: false,
-  //     accessKey: 'oLTKAa5RF2ygHQ7Dt8i9',
-  //     secretKey: 'sAtLw1t1ZGduZHApvMsEq9rUUPdUngtZThS1FPLw');
 }
 
 class HomePage extends StatefulWidget {
@@ -52,7 +36,7 @@ class _HomePageState extends State<HomePage> {
     final Widget page;
     switch (selectedIndex) {
       case 0:
-        page = const StoragePage();
+        page = StoragePage();
         break;
       case 1:
         page = const TransferPage();
