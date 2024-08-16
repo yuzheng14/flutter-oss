@@ -94,6 +94,10 @@ import 'package:flutter_oss/store/object.dart';
 // }
 
 class StoragePage extends StatelessWidget {
+  final Function uploadFile;
+
+  StoragePage({required this.uploadFile});
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -148,7 +152,7 @@ class StoragePage extends StatelessWidget {
           }
         }),
         floatingActionButton: FloatingActionButton(
-          onPressed: () => ApiService.new().uploadFile(),
+          onPressed: () => uploadFile(),
           tooltip: 'Upload File',
           child: Icon(Icons.file_upload),
         ),

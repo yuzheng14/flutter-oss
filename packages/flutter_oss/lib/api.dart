@@ -10,7 +10,7 @@ class ApiService {
   Future<List<ListEntry>> fetchObjects() async {
     var response = await http.get(Uri.parse('http://localhost:8000/object'));
     if (response.statusCode == 200) {
-      List<dynamic> data = jsonDecode(response.body);
+      List<dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
       return data
           .map((item) => ListEntry.fromJson(item))
           .where((item) =>
@@ -19,9 +19,5 @@ class ApiService {
     } else {
       throw Exception('Failed to load data');
     }
-  }
-
-  Future<void> uploadFile() async {
-    // TODO to be implemented
   }
 }
