@@ -36,6 +36,7 @@ class _HomePageState extends State<HomePage> {
         content: Text('upload failed: $err'),
         backgroundColor: Colors.red,
       ));
+      throw err;
     });
 
     var task = TransferTask(
